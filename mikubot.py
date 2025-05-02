@@ -22,7 +22,7 @@ bot = commands.Bot(command_prefix='&', intents=intents)
 async def on_ready():
     print(f'Logged on as {bot.user}!')
     await bot.load_extension(f"cogs.maincommands")
-    await bot.tree.sync()
+    await bot.tree.sync
 
 
 # @bot.command()
@@ -39,7 +39,7 @@ async def on_ready():
 #         else:
 #             await ctx.send("Sorry, I can't do that")
 
-bot.run('MTM2NzU3NjU4NjMyNDQxNDU1NA.GAzwl6.7bU5y3KTZU6B7JYn2oaH7nHy5JyFclDL2sj3b0',log_handler=handler,log_level=logging.DEBUG)
+bot.run(os.getenv('DISCORD_TOKEN'),log_handler=handler,log_level=logging.DEBUG)
 
         
         
