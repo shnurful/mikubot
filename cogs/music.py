@@ -31,7 +31,7 @@ class music(commands.Cog):
             player = discord.FFmpegOpusAudio(song, **self.FFMPEG_OPTIONS)
 
             voice.play(player)
-
+            await ctx.send(f"Now playing: {url} ")
         except Exception as e:
             print(e)
 
