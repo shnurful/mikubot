@@ -9,6 +9,7 @@ class music(commands.Cog):
     def __init__(self,bot):
         self.bot = bot
 
+        self.now_playing = ""
         self.music_queue =[]
         self.YDL_OPTIONS = {'format' : 'bestaudio/best', 'noplaylist': 'True'}
         self.ytdl = yt_dlp.YoutubeDL(self.YDL_OPTIONS)
@@ -28,8 +29,7 @@ class music(commands.Cog):
 
             voice.play(player)
             await ctx.send(f"Now playing: {url} ")
-            self.is_playing = True
-
+            self.now_playing = url
         except Exception as e:
             print(e)
 
@@ -52,18 +52,29 @@ class music(commands.Cog):
             if(voice.is_playing):
                 voice.resume()
                 await ctx.send("Ok! Resuming!")
-            else:
+            else: 
                 await ctx.send("I'm not playing anything right now")
         except Exception as e:
             print(e)
     
     @commands.hybrid_command(name="stop", description="I'll stop playing")
-    async def resume(self,ctx: commands.Context):
+    async def stop(self,ctx: commands.Context):
         voice = ctx.voice_client
         try:
             if(voice.is_playing):
                 voice.stop()
                 await ctx.send("Ok! Stopping.")
+            else:
+                await ctx.send("I'm not playing anything right now")
+        except Exception as e:
+            print(e)
+
+    @commands.hybrid_command(name="now-playing", description="I'll show what's playing right now")
+    async def now_playing(self,ctx: commands.Context):
+        voice = ctx.voice_client
+        try:
+            if(voice.is_playing):
+                await ctx.send(f"Playing now: {self.now_playing}")
             else:
                 await ctx.send("I'm not playing anything right now")
         except Exception as e:
