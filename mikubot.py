@@ -18,18 +18,11 @@ intents.voice_states= True
 
 bot = commands.Bot(command_prefix='&', intents=intents)
 
-
-@bot.tree.command(name="load", description="load a cog",guild=GUILD_ID)
-async def load_cog(interaction: discord.Interaction, extension: str):
-    await bot.load_extension(f"cogs.{extension}")
-    await interaction.response.send_message(f"Cog '{extension} loaded.")
-    print(f"Cog '{extension}' has been loaded.")
-
 @bot.event
 async def on_ready():
     print(f'Logged on as {bot.user}!')
     await bot.load_extension(f"cogs.maincommands")
-
+    await bot.tree.sync()
 
 
 # @bot.command()
