@@ -20,23 +20,20 @@ async def on_ready():
     print(f'Logged on as {bot.user}!')
 
 @bot.command()
-async def add(ctx, left: int, right: int):
-    await ctx.send(left+right)
-
-@bot.command()
-async def hello(ctx):
-    sender = ctx.author
-    await ctx.send(f"Hello {sender}!")
-
-@bot.command()
 async def join(ctx):
     member = ctx.author
     try:
         invoice = await member.fetch_voice()
-        await ctx.join()
+        channel = invoice.channel
     except:
-        await ctx.send(f"{member}, you're not in voice!")
-        
+        await ctx.send(f"{member}, you're not in a channel!")
+
+    await channel.connect()
+
+@bot.command()
+async def leave(ctx):
+    voice = ctx.voice_client
+    await voice.disconnect()
 
 bot.run('MTM2NzU3NjU4NjMyNDQxNDU1NA.GAzwl6.7bU5y3KTZU6B7JYn2oaH7nHy5JyFclDL2sj3b0',log_handler=handler,log_level=logging.DEBUG)
 
