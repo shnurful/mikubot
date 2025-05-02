@@ -7,8 +7,8 @@ class main_commands(commands.Cog):
         self.bot = bot
     
     #TODO: add exception handling for connecting, improve exception handling for fetch_voice()
-    @commands.command(name="join", description="I will join your current channel")
-    async def join(self,ctx):
+    @commands.hybrid_command(name="join", description="I will join your current channel")
+    async def join(self,ctx: commands.Context):
         member = ctx.author
         try:
             invoice = await member.fetch_voice()
@@ -19,7 +19,7 @@ class main_commands(commands.Cog):
         await channel.connect()
     
     #TODO: add exception handling
-    @commands.command(name="leave", description="I will leave my current channel")
+    @commands.hybrid_command(name="leave", description="I will leave my current channel")
     async def leave(self,ctx):
         voice = ctx.voice_client
         await voice.disconnect()
