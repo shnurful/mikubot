@@ -22,6 +22,7 @@ bot = commands.Bot(command_prefix='&', intents=intents)
 async def reload(ctx: commands.Context, arg: str):
     await bot.reload_extension(f'cogs.{arg}')
     await ctx.send(f"I reloaded {arg}!")
+    await bot.tree.sync()
 
 @bot.event
 async def on_ready():
