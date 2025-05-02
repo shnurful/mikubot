@@ -16,7 +16,7 @@ class music(commands.Cog):
         self.music_queue =[]
         self.YDL_OPTIONS = {'format' : 'bestaudio/best', 'noplaylist': 'True'}
         self.ytdl = yt_dlp.YoutubeDL(self.YDL_OPTIONS)
-        self.FFMPEG_OPTIONS = {'options': '-vn'}
+        self.FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5','options': '-vn -attempt_recovery true -recover_any_error true'}
         self.vc = None
     
     @commands.hybrid_command(name="play", description="I'll play the video from the url provided")
