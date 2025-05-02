@@ -18,10 +18,17 @@ intents.voice_states= True
 
 bot = commands.Bot(command_prefix='&', intents=intents)
 
+@bot.hybrid_command(name="reload-cog",description="reload specified cog")
+async def reload(ctx: commands.Context, arg: str):
+    await bot.reload_extension(f'cogs.{arg}')
+    await ctx.send(f"I reloaded {arg}!")
+
 @bot.event
 async def on_ready():
     print(f'Logged on as {bot.user}!')
     await bot.load_extension(f"cogs.maincommands")
-    await bot.tree.sync
+    await bot.tree.sync()
+
+
 
 bot.run(os.getenv('DISCORD_TOKEN'),log_handler=handler,log_level=logging.DEBUG)
