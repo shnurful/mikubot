@@ -16,11 +16,12 @@ class queueView(discord.ui.View):
         self.message = await ctx.send(view=self)
         await self.update_message(self.data[:self.sep])
     
+    #TODO: fix queue number display somehow
     def create_embed(self,data):
         embed = discord.Embed(title="Queue")
         for index in range(len(data)):
             for key, val in data[index].items():
-                embed.add_field(name=key, value=val, inline=False)
+                embed.add_field(name=f"{index + 1}. {key}", value=val, inline=False)
         return embed
     
     async def update_message(self,data):
@@ -59,6 +60,14 @@ class music(commands.Cog):
     @commands.hybrid_command(name="play", description="I'll play the video from the url provided")
     async def play(self,ctx: commands.Context, url: str):
         voice = ctx.voice_client
+        
+        member = ctx.author
+        try:
+            invoice = await member.fetch_voice()
+            channel = invoice.channel
+            await channel.connect()
+        except:
+            await ctx.send(f"{member}, you're not in a channel!")
         try:
 
             loop = asyncio.get_event_loop()
@@ -66,10 +75,11 @@ class music(commands.Cog):
             data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(url, download=False))
 
             song = data['url']
+            title = data['title']
             player = discord.FFmpegOpusAudio(song, **self.FFMPEG_OPTIONS)
 
             voice.play(player)
-            await ctx.send(f"Now playing: {url} ")
+            await ctx.send(f"Now playing: {title} ")
             self.now_playing = url
 
         except Exception as e:
@@ -134,12 +144,13 @@ class music(commands.Cog):
     async def queue_add(self,ctx: commands.Context, url: str):
         voice = ctx.voice_client
         try:
-
+            await ctx.interaction.response.defer(thinking=True)
             loop = asyncio.get_event_loop()
             data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(url, download=False))
             qitem = {"title": data['title'], "url": url}
             self.music_queue.append(qitem)
-            await ctx.send(f"Ok! I added \"{data['title']}\" to the queue!")
+            
+            await ctx.interaction.followup.send(f"Ok! I added \"{data['title']}\" to the queue!")
 
         except Exception as e:
             print(e)
@@ -164,7 +175,18 @@ class music(commands.Cog):
             await queue.send(ctx)
 
         except Exception as e:
-            print(e)     
-        
+            print(e)
+
+    @commands.hybrid_command(name="remove-from-queue",description="I'll remove this song from queue")
+    async def queue_remove(self, ctx: commands.Context, ):
+        try:
+
+            queue = queueView()
+            queue.data= self.music_queue
+            await queue.send(ctx)
+
+        except Exception as e:
+            print(e)
+    
 async def setup(bot: commands.Bot):
     await bot.add_cog(music(bot))
