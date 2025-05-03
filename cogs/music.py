@@ -57,19 +57,19 @@ class music(commands.Cog):
         self.FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5','options': '-vn -attempt_recovery true -recover_any_error true'}
         self.vc = None
     
+
+    ##TODO: fix 
     @commands.hybrid_command(name="play", description="I'll play the video from the url provided")
     async def play(self,ctx: commands.Context, url: str):
         voice = ctx.voice_client
-        
-        member = ctx.author
         try:
-            invoice = await member.fetch_voice()
-            channel = invoice.channel
-            await channel.connect()
-        except:
-            await ctx.send(f"{member}, you're not in a channel!")
-        try:
-
+            if(voice == None):
+                member = ctx.author
+                invoice = await member.fetch_voice()
+                channel = invoice.channel
+                await channel.connect()
+            
+            voice = ctx.voice_client
             loop = asyncio.get_event_loop()
 
             data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(url, download=False))
@@ -178,13 +178,10 @@ class music(commands.Cog):
             print(e)
 
     @commands.hybrid_command(name="remove-from-queue",description="I'll remove this song from queue")
-    async def queue_remove(self, ctx: commands.Context, ):
+    async def queue_remove(self, ctx: commands.Context,queue_number: int ):
         try:
-
-            queue = queueView()
-            queue.data= self.music_queue
-            await queue.send(ctx)
-
+            self.music_queue.pop(queue_number - 1)
+            await ctx.send(f"Ok! I removed #{queue_number} from queue.")
         except Exception as e:
             print(e)
     
