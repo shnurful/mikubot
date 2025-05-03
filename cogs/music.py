@@ -6,13 +6,51 @@ import yt_dlp
 from yt_dlp import YoutubeDL
 
 #TODO: make commands execute per server instead of globally
+#TODO: add folder for ffmpeg and path variable
+
+class queueView(discord.ui.View):
+    current_page: int = 1
+    sep: int = 5
+
+    async def send(self, ctx):
+        self.message = await ctx.send(view=self)
+        await self.update_message(self.data[:self.sep])
+    
+    def create_embed(self,data):
+        embed = discord.Embed(title="Queue")
+        for index in range(len(data)):
+            for key, val in data[index].items():
+                embed.add_field(name=key, value=val, inline=False)
+        return embed
+    
+    async def update_message(self,data):
+        await self.message.edit(embed=self.create_embed(data), view=self)
+    
+    @discord.ui.button(label="<",
+                       style=discord.ButtonStyle.primary)
+    async def back_button(self, interaction:discord.Interaction,item):
+        await interaction.response.defer()
+        self.current_page -= 1
+        until_item = self.current_page * self.sep
+        from_item = until_item - self.sep
+        await self.update_message(self.data[from_item:until_item])
+   
+    @discord.ui.button(label=">",
+                       style=discord.ButtonStyle.primary)
+    async def next_button(self, interaction:discord.Interaction,item):
+        await interaction.response.defer()
+        self.current_page += 1
+        until_item = self.current_page * self.sep
+        from_item = until_item - self.sep
+        await self.update_message(self.data[from_item:until_item])
 
 class music(commands.Cog):
     def __init__(self,bot):
         self.bot = bot
 
         self.now_playing = ""
-        self.music_queue =[]
+        self.music_queue = []
+
         self.YDL_OPTIONS = {'format' : 'bestaudio/best', 'noplaylist': 'True'}
         self.ytdl = yt_dlp.YoutubeDL(self.YDL_OPTIONS)
         self.FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5','options': '-vn -attempt_recovery true -recover_any_error true'}
@@ -22,7 +60,7 @@ class music(commands.Cog):
     async def play(self,ctx: commands.Context, url: str):
         voice = ctx.voice_client
         try:
-            
+
             loop = asyncio.get_event_loop()
 
             data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(url, download=False))
@@ -116,7 +154,17 @@ class music(commands.Cog):
 
         except Exception as e:
             print(e)
-        
+
+    @commands.hybrid_command(name="queue",description="I'll show what's queued up")
+    async def show_queue(self, ctx: commands.Context):
+        try:
+
+            queue = queueView()
+            queue.data= self.music_queue
+            await queue.send(ctx)
+
+        except Exception as e:
+            print(e)     
         
 async def setup(bot: commands.Bot):
     await bot.add_cog(music(bot))
