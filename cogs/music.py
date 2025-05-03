@@ -57,18 +57,24 @@ class music(commands.Cog):
         self.FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5','options': '-vn -attempt_recovery true -recover_any_error true'}
         self.vc = None
     
-
-    ##TODO: fix 
     @commands.hybrid_command(name="play", description="I'll play the video from the url provided")
     async def play(self,ctx: commands.Context, url: str):
-        voice = ctx.voice_client
+        
+        
+        await ctx.interaction.response.defer(thinking=True)
         try:
+            voice = ctx.voice_client
+
             if(voice == None):
                 member = ctx.author
                 invoice = await member.fetch_voice()
                 channel = invoice.channel
                 await channel.connect()
+
+        except Exception:
+            await ctx.interaction.response.followup(f"{member}, you're not in a channel!")            
             
+        try:
             voice = ctx.voice_client
             loop = asyncio.get_event_loop()
 
@@ -79,7 +85,7 @@ class music(commands.Cog):
             player = discord.FFmpegOpusAudio(song, **self.FFMPEG_OPTIONS)
 
             voice.play(player)
-            await ctx.send(f"Now playing: {title} ")
+            await ctx.interaction.followup.send(f"Now playing: {title} ")
             self.now_playing = url
 
         except Exception as e:
