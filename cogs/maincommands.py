@@ -17,12 +17,14 @@ class main_commands(commands.Cog):
             await ctx.send(f"{member}, you're not in a channel!")
 
         await channel.connect()
+        await ctx.send("はい!いきます！")
     
     #TODO: add exception handling
     @commands.hybrid_command(name="leave", description="I will leave my current channel")
     async def leave(self,ctx):
         voice = ctx.voice_client
         await voice.disconnect()
+        await ctx.send("またね！")
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(main_commands(bot))
