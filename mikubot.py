@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
+DISCORD_TOKEN = os.environ["discord_token"]
+
 handler = logging.FileHandler(filename='discord.log',encoding='utf-8',mode='w')
 
 GUILD_ID = discord.Object(id=1367580756267765851)
