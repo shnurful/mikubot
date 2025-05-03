@@ -3,6 +3,9 @@
 
 name: Python application
 
+concurrency:
+  group: main-group
+  cancel-in-progress: true
 on:
   push:
     branches: [ "main" ]
