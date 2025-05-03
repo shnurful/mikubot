@@ -29,6 +29,7 @@ async def on_ready():
     print(f'Logged on as {bot.user}!')
     await bot.load_extension(f"cogs.maincommands")
     await bot.load_extension(f"cogs.music")
+    await bot.load_extension(f"cogs.misccommands")
     await bot.tree.sync()
 
 
