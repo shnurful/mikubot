@@ -5,6 +5,8 @@ from discord import app_commands
 import yt_dlp
 from yt_dlp import YoutubeDL
 
+#TODO: make commands execute per server instead of globally
+
 class music(commands.Cog):
     def __init__(self,bot):
         self.bot = bot
@@ -20,16 +22,18 @@ class music(commands.Cog):
     async def play(self,ctx: commands.Context, url: str):
         voice = ctx.voice_client
         try:
+            
             loop = asyncio.get_event_loop()
 
             data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(url, download=False))
-            
+
             song = data['url']
             player = discord.FFmpegOpusAudio(song, **self.FFMPEG_OPTIONS)
 
             voice.play(player)
             await ctx.send(f"Now playing: {url} ")
             self.now_playing = url
+
         except Exception as e:
             print(e)
 
@@ -37,11 +41,13 @@ class music(commands.Cog):
     async def pause(self,ctx: commands.Context):
         voice = ctx.voice_client
         try:
+
             if(voice.is_playing):
                 voice.pause()
                 await ctx.send("Ok! Paused.")
             else:
                 await ctx.send("I'm not playing anything right now")
+
         except Exception as e:
             print(e)
     
@@ -49,23 +55,27 @@ class music(commands.Cog):
     async def resume(self,ctx: commands.Context):
         voice = ctx.voice_client
         try:
+
             if(voice.is_playing):
                 voice.resume()
                 await ctx.send("Ok! Resuming!")
             else: 
                 await ctx.send("I'm not playing anything right now")
+
         except Exception as e:
             print(e)
     
-    @commands.hybrid_command(name="stop", description="I'll stop playing")
+    @commands.hybrid_command(name="stop", description="I'll stop playing the current song")
     async def stop(self,ctx: commands.Context):
         voice = ctx.voice_client
         try:
+
             if(voice.is_playing):
                 voice.stop()
                 await ctx.send("Ok! Stopping.")
             else:
                 await ctx.send("I'm not playing anything right now")
+
         except Exception as e:
             print(e)
 
@@ -73,12 +83,40 @@ class music(commands.Cog):
     async def now_playing(self,ctx: commands.Context):
         voice = ctx.voice_client
         try:
+
             if(voice.is_playing):
                 await ctx.send(f"Playing now: {self.now_playing}")
             else:
                 await ctx.send("I'm not playing anything right now")
+
         except Exception as e:
             print(e)
 
+    @commands.hybrid_command(name="add-to-queue", description="I'll add your song to the queue")
+    async def queue_add(self,ctx: commands.Context, url: str):
+        voice = ctx.voice_client
+        try:
+
+            loop = asyncio.get_event_loop()
+            data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(url, download=False))
+            qitem = {"title": data['title'], "url": url}
+            self.music_queue.append(qitem)
+            await ctx.send(f"Ok! I added \"{data['title']}\" to the queue!")
+
+        except Exception as e:
+            print(e)
+
+    @commands.hybrid_command(name="play-next",description="I'll play the next song in queue")
+    async def play_next(self, ctx: commands.Context):
+        try:
+
+            url = self.music_queue[0]['url']
+            await self.play(ctx,url)
+            self.music_queue.pop(0)
+
+        except Exception as e:
+            print(e)
+        
+        
 async def setup(bot: commands.Bot):
     await bot.add_cog(music(bot))
