@@ -13,7 +13,7 @@ env:
   discord_token: ${{secrets.DISCORD_TOKEN}}
 
 jobs:
-  build:
+  Run:
 
     runs-on: self-hosted
 
