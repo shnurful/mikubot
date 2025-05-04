@@ -51,6 +51,7 @@ class music(commands.Cog):
 
         self.now_playing = ""
         self.music_queue = []
+        self.autoplay = False
 
         self.YDL_OPTIONS = {'format' : 'bestaudio/best', 'noplaylist': 'True'}
         self.ytdl = yt_dlp.YoutubeDL(self.YDL_OPTIONS)
@@ -125,6 +126,7 @@ class music(commands.Cog):
         try:
 
             if(voice.is_playing):
+                self.music_queue.pop(0)
                 voice.stop()
                 await ctx.send("Ok! Stopping.")
             else:
@@ -190,6 +192,14 @@ class music(commands.Cog):
             await ctx.send(f"Ok! I removed #{queue_number} from queue.")
         except Exception as e:
             print(e)
-    
+
+    @commands.hybrid_command(name="autoplay", description="I'll toggle autoplay on or off")    
+    async def toggle_autoplay(self,ctx: commands.Context):
+        
+        if not self.autoplay:
+            self.autoplay = True
+        else:
+            self.autoplay = False 
+
 async def setup(bot: commands.Bot):
     await bot.add_cog(music(bot))
