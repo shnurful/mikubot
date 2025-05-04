@@ -51,13 +51,17 @@ class music(commands.Cog):
 
         self.now_playing = ""
         self.music_queue = []
-        self.autoplay = False
 
         self.YDL_OPTIONS = {'format' : 'bestaudio/best', 'noplaylist': 'True'}
         self.ytdl = yt_dlp.YoutubeDL(self.YDL_OPTIONS)
         self.FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5','options': '-vn -attempt_recovery true -recover_any_error true'}
         self.vc = None
     
+    # async def runAutoplay(self, ctx, on: bool):
+    #     while on and self.music_queue:
+    #         if
+
+
     @commands.hybrid_command(name="play", description="I'll play the video from the url provided")
     async def play(self,ctx: commands.Context, url: str):
         
@@ -77,17 +81,21 @@ class music(commands.Cog):
             
         try:
             voice = ctx.voice_client
-            loop = asyncio.get_event_loop()
+            if not voice.is_playing:
 
-            data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(url, download=False))
+                loop = asyncio.get_event_loop()
 
-            song = data['url']
-            title = data['title']
-            player = discord.FFmpegOpusAudio(song, **self.FFMPEG_OPTIONS)
+                data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(url, download=False))
 
-            voice.play(player)
-            await ctx.interaction.followup.send(f"Now playing: {title} ")
-            self.now_playing = url
+                song = data['url']
+                title = data['title']
+                player = discord.FFmpegOpusAudio(song, **self.FFMPEG_OPTIONS)
+
+                voice.play(player)
+                await ctx.interaction.followup.send(f"Now playing: {title} ")
+                self.now_playing = url
+            else:
+                await self.queue_add(ctx,song)
 
         except Exception as e:
             print(e)
@@ -192,16 +200,6 @@ class music(commands.Cog):
             await ctx.send(f"Ok! I removed #{queue_number} from queue.")
         except Exception as e:
             print(e)
-
-    @commands.hybrid_command(name="autoplay", description="I'll toggle autoplay on or off")    
-    async def toggle_autoplay(self,ctx: commands.Context):
-        
-        if not self.autoplay:
-            self.autoplay = True
-            await ctx.send("Ok! Autoplay enabled.")
-        else:
-            self.autoplay = False
-            await ctx.send("Ok! Autoplay enabled.") 
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(music(bot))
