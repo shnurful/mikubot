@@ -81,7 +81,7 @@ class music(commands.Cog):
             
         try:
             voice = ctx.voice_client
-            if not voice.is_playing:
+            if(not voice.is_playing):
 
                 loop = asyncio.get_event_loop()
 
