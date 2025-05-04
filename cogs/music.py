@@ -65,8 +65,6 @@ class music(commands.Cog):
     @commands.hybrid_command(name="play", description="I'll play the video from the url provided")
     async def play(self,ctx: commands.Context, url: str):
         
-        
-        await ctx.interaction.response.defer(thinking=True)
         try:
             voice = ctx.voice_client
 
@@ -77,7 +75,7 @@ class music(commands.Cog):
                 await channel.connect()
 
         except Exception:
-            await ctx.interaction.response.followup(f"{member}, you're not in a channel!")            
+            await ctx.send(f"{member}, you're not in a channel!")            
             
         try:
             voice = ctx.voice_client
@@ -92,7 +90,7 @@ class music(commands.Cog):
                 player = discord.FFmpegOpusAudio(song, **self.FFMPEG_OPTIONS)
 
                 voice.play(player)
-                await ctx.interaction.followup.send(f"Now playing: {title} ")
+                await ctx.send(f"Now playing: {title} ")
                 self.now_playing = url
             else:
                 await self.queue_add(ctx,song)
