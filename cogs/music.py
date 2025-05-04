@@ -162,21 +162,6 @@ class music(commands.Cog):
         except Exception as e:
             print(e)
 
-    @commands.hybrid_command(name="add-to-queue", description="I'll add your song to the queue")
-    async def queue_add(self,ctx: commands.Context, url: str):
-        voice = ctx.voice_client
-        try:
-            await ctx.interaction.response.defer(thinking=True)
-            loop = asyncio.get_event_loop()
-            data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(url, download=False))
-            qitem = {"title": data['title'], "url": url}
-            self.music_queue.append(qitem)
-            
-            await ctx.interaction.followup.send(f"Ok! I added \"{data['title']}\" to the queue!")
-
-        except Exception as e:
-            print(e)
-
     @commands.hybrid_command(name="play-next",description="I'll play the next song in queue")
     async def play_next(self, ctx: commands.Context):
         try:
