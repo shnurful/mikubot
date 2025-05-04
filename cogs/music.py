@@ -79,8 +79,9 @@ class music(commands.Cog):
             
         try:
             voice = ctx.voice_client
-            if(not voice.is_playing):
-
+            if(voice.is_playing):
+               await self.queue_add(ctx,url)
+            else:
                 loop = asyncio.get_event_loop()
 
                 data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(url, download=False))
@@ -92,8 +93,7 @@ class music(commands.Cog):
                 voice.play(player)
                 await ctx.send(f"Now playing: {title} ")
                 self.now_playing = url
-            else:
-                await self.queue_add(ctx,song)
+                
 
         except Exception as e:
             print(e)
