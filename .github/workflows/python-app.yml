@@ -8,7 +8,9 @@ concurrency:
   cancel-in-progress: true
 on:
   push:
-    branches: [ "main" ]
+    branches: |
+     [ "main" ]
+     [ "add-queue-autoplay" ]
   pull_request:
     branches: [ "main" ]
     
