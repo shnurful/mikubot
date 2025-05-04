@@ -10,7 +10,6 @@ on:
   push:
     branches: 
      - "main" 
-     - "add-queue-autoplay"
      
   pull_request:
     branches: [ "main" ]
