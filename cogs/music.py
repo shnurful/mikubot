@@ -198,10 +198,10 @@ class music(commands.Cog):
         
         if not self.autoplay:
             self.autoplay = True
-            ctx.send("Ok! Autoplay enabled.")
+            await ctx.send("Ok! Autoplay enabled.")
         else:
             self.autoplay = False
-            ctx.send("Ok! Autoplay enabled.") 
+            await ctx.send("Ok! Autoplay enabled.") 
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(music(bot))
