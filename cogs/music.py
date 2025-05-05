@@ -48,8 +48,6 @@ class queueView(discord.ui.View):
 class music(commands.Cog):
     def __init__(self,bot):
         self.bot = bot
-
-        self.now_playing = ""
         self.music_queue = []
 
         self.YDL_OPTIONS = {'format' : 'bestaudio/best', 'noplaylist': 'True'}
@@ -57,9 +55,27 @@ class music(commands.Cog):
         self.FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5','options': '-vn -attempt_recovery true -recover_any_error true'}
         self.vc = None
     
+    
+    async def do_autoplay(self,ctx):
+        if(self.music_queue):
+            vc = ctx.voice_client
+            url = self.music_queue[0]['url']
+            loop = asyncio.get_event_loop()
+
+            data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(url, download=False))
+
+            song = data['url']
+            title = data['title']
+            player = discord.FFmpegOpusAudio(song, **self.FFMPEG_OPTIONS)
+            self.music_queue.pop(0)
+            vc.play(player, after= lambda e: asyncio.run_coroutine_threadsafe(self.do_autoplay(ctx),loop))
+            await ctx.send(f"Now playing: {title} ")
+        else:
+            return
+    
+
     @commands.hybrid_command(name="play", description="I'll play the video from the url provided")
     async def play(self,ctx: commands.Context, url: str):
-        
         
         await ctx.interaction.response.defer(thinking=True)
         try:
@@ -72,10 +88,20 @@ class music(commands.Cog):
                 await channel.connect()
 
         except Exception:
-            await ctx.interaction.response.followup(f"{member}, you're not in a channel!")            
+            await ctx.interaction.followup.send(f"{member}, you're not in a channel!")            
             
         try:
-            voice = ctx.voice_client
+            vc = ctx.voice_client
+
+            if(vc.is_playing()):
+                loop = asyncio.get_event_loop()
+                data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(url, download=False))
+                qitem = {"title": data['title'], "url": url}
+                self.music_queue.append(qitem)
+                await ctx.interaction.followup.send(f"Ok! I added \"{data['title']}\" to the queue!")
+                return
+
+
             loop = asyncio.get_event_loop()
 
             data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(url, download=False))
@@ -84,23 +110,31 @@ class music(commands.Cog):
             title = data['title']
             player = discord.FFmpegOpusAudio(song, **self.FFMPEG_OPTIONS)
 
-            voice.play(player)
+            vc.play(player, after= lambda e: asyncio.run_coroutine_threadsafe(self.do_autoplay(ctx),loop))
+
             await ctx.interaction.followup.send(f"Now playing: {title} ")
             self.now_playing = url
 
         except Exception as e:
             print(e)
 
+
     @commands.hybrid_command(name="pause", description="I'll pause what's currently playing")
     async def pause(self,ctx: commands.Context):
         voice = ctx.voice_client
         try:
+            if (voice == None):
+                await ctx.send("I'm not in a channel right now")
 
-            if(voice.is_playing):
-                voice.pause()
-                await ctx.send("Ok! Paused.")
             else:
-                await ctx.send("I'm not playing anything right now")
+
+                if(voice.is_playing()):
+                    voice.pause()
+                    await ctx.send("Ok! Paused.")
+                elif(voice.is_paused()):
+                    await ctx.send("It's already paused!")
+                else:
+                    await ctx.send("I'm not playing anything right now")
 
         except Exception as e:
             print(e)
@@ -109,12 +143,16 @@ class music(commands.Cog):
     async def resume(self,ctx: commands.Context):
         voice = ctx.voice_client
         try:
-
-            if(voice.is_playing):
-                voice.resume()
-                await ctx.send("Ok! Resuming!")
-            else: 
-                await ctx.send("I'm not playing anything right now")
+            if (voice == None):
+                await ctx.send("I'm not in a channel right now")
+            else:
+                if(voice.is_paused()):
+                    voice.resume()
+                    await ctx.send("Ok! Resuming!")
+                elif(voice.is_playing()):
+                    await ctx.send("It's already playing!")
+                else: 
+                    await ctx.send("I'm not playing anything right now")
 
         except Exception as e:
             print(e)
@@ -124,7 +162,7 @@ class music(commands.Cog):
         voice = ctx.voice_client
         try:
 
-            if(voice.is_playing):
+            if(voice.is_playing()):
                 voice.stop()
                 await ctx.send("Ok! Stopping.")
             else:
@@ -138,7 +176,7 @@ class music(commands.Cog):
         voice = ctx.voice_client
         try:
 
-            if(voice.is_playing):
+            if(voice.is_playing()):
                 await ctx.send(f"Playing now: {self.now_playing}")
             else:
                 await ctx.send("I'm not playing anything right now")
@@ -146,25 +184,9 @@ class music(commands.Cog):
         except Exception as e:
             print(e)
 
-    @commands.hybrid_command(name="add-to-queue", description="I'll add your song to the queue")
-    async def queue_add(self,ctx: commands.Context, url: str):
-        voice = ctx.voice_client
-        try:
-            await ctx.interaction.response.defer(thinking=True)
-            loop = asyncio.get_event_loop()
-            data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(url, download=False))
-            qitem = {"title": data['title'], "url": url}
-            self.music_queue.append(qitem)
-            
-            await ctx.interaction.followup.send(f"Ok! I added \"{data['title']}\" to the queue!")
-
-        except Exception as e:
-            print(e)
-
     @commands.hybrid_command(name="play-next",description="I'll play the next song in queue")
     async def play_next(self, ctx: commands.Context):
         try:
-
             url = self.music_queue[0]['url']
             await self.play(ctx,url)
             self.music_queue.pop(0)
@@ -190,6 +212,6 @@ class music(commands.Cog):
             await ctx.send(f"Ok! I removed #{queue_number} from queue.")
         except Exception as e:
             print(e)
-    
+
 async def setup(bot: commands.Bot):
     await bot.add_cog(music(bot))
