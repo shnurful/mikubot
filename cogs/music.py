@@ -150,7 +150,7 @@ class music(commands.Cog):
         voice = ctx.voice_client
         try:
 
-            if(voice.is_playing):
+            if(voice.is_playing()):
                 voice.stop()
                 await ctx.send("Ok! Stopping.")
             else:
@@ -164,7 +164,7 @@ class music(commands.Cog):
         voice = ctx.voice_client
         try:
 
-            if(voice.is_playing):
+            if(voice.is_playing()):
                 await ctx.send(f"Playing now: {self.now_playing}")
             else:
                 await ctx.send("I'm not playing anything right now")
