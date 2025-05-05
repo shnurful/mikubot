@@ -48,8 +48,6 @@ class queueView(discord.ui.View):
 class music(commands.Cog):
     def __init__(self,bot):
         self.bot = bot
-
-        self.now_playing = ""
         self.music_queue = []
 
         self.YDL_OPTIONS = {'format' : 'bestaudio/best', 'noplaylist': 'True'}
@@ -57,14 +55,27 @@ class music(commands.Cog):
         self.FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5','options': '-vn -attempt_recovery true -recover_any_error true'}
         self.vc = None
     
-    # async def runAutoplay(self, ctx, on: bool):
-    #     while on and self.music_queue:
-    #         if
+    
+    async def do_autoplay(self,ctx):
+        if(self.music_queue):
+            vc = ctx.voice_client
+            url = self.music_queue[0]['url']
+            loop = asyncio.get_event_loop()
 
+            data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(url, download=False))
+
+            song = data['url']
+            title = data['title']
+            player = discord.FFmpegOpusAudio(song, **self.FFMPEG_OPTIONS)
+            self.music_queue.pop(0)
+            vc.play(player, after= lambda e: asyncio.run_coroutine_threadsafe(self.do_autoplay(ctx),loop))
+            await ctx.send(f"Now playing: {title} ")
+        else:
+            return
+    
 
     @commands.hybrid_command(name="play", description="I'll play the video from the url provided")
     async def play(self,ctx: commands.Context, url: str):
-        
         
         await ctx.interaction.response.defer(thinking=True)
         try:
@@ -99,7 +110,8 @@ class music(commands.Cog):
             title = data['title']
             player = discord.FFmpegOpusAudio(song, **self.FFMPEG_OPTIONS)
 
-            vc.play(player)
+            vc.play(player, after= lambda e: asyncio.run_coroutine_threadsafe(self.do_autoplay(ctx),loop))
+
             await ctx.interaction.followup.send(f"Now playing: {title} ")
             self.now_playing = url
 
