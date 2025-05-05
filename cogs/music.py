@@ -80,9 +80,9 @@ class music(commands.Cog):
             await ctx.interaction.followup.send(f"{member}, you're not in a channel!")            
             
         try:
-            voice = ctx.voice_client
+            vc = ctx.voice_client
 
-            if(voice.is_playing()):
+            if(vc.is_playing()):
                 loop = asyncio.get_event_loop()
                 data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(url, download=False))
                 qitem = {"title": data['title'], "url": url}
@@ -99,7 +99,7 @@ class music(commands.Cog):
             title = data['title']
             player = discord.FFmpegOpusAudio(song, **self.FFMPEG_OPTIONS)
 
-            voice.play(player)
+            vc.play(player)
             await ctx.interaction.followup.send(f"Now playing: {title} ")
             self.now_playing = url
 
@@ -111,12 +111,18 @@ class music(commands.Cog):
     async def pause(self,ctx: commands.Context):
         voice = ctx.voice_client
         try:
+            if (voice == None):
+                await ctx.send("I'm not in a channel right now")
 
-            if(voice.is_playing):
-                voice.pause()
-                await ctx.send("Ok! Paused.")
             else:
-                await ctx.send("I'm not playing anything right now")
+
+                if(voice.is_playing()):
+                    voice.pause()
+                    await ctx.send("Ok! Paused.")
+                elif(voice.is_paused()):
+                    await ctx.send("It's already paused!")
+                else:
+                    await ctx.send("I'm not playing anything right now")
 
         except Exception as e:
             print(e)
@@ -125,12 +131,16 @@ class music(commands.Cog):
     async def resume(self,ctx: commands.Context):
         voice = ctx.voice_client
         try:
-
-            if(voice.is_playing):
-                voice.resume()
-                await ctx.send("Ok! Resuming!")
-            else: 
-                await ctx.send("I'm not playing anything right now")
+            if (voice == None):
+                await ctx.send("I'm not in a channel right now")
+            else:
+                if(voice.is_paused()):
+                    voice.resume()
+                    await ctx.send("Ok! Resuming!")
+                elif(voice.is_playing()):
+                    await ctx.send("It's already playing!")
+                else: 
+                    await ctx.send("I'm not playing anything right now")
 
         except Exception as e:
             print(e)
