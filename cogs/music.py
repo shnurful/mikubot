@@ -47,8 +47,13 @@ class queueView(discord.ui.View):
 
 class music(commands.Cog):
     def __init__(self,bot):
+      
         self.bot = bot
+
+        self.loop_on = False
         self.music_queue = []
+        self.now_playing_url = ""
+        self.now_playing_title = ""
 
         self.YDL_OPTIONS = {'format' : 'bestaudio/best', 'noplaylist': 'True'}
         self.ytdl = yt_dlp.YoutubeDL(self.YDL_OPTIONS)
@@ -57,19 +62,40 @@ class music(commands.Cog):
     
     
     async def do_autoplay(self,ctx):
-        if(self.music_queue):
-            vc = ctx.voice_client
+        
+        vc = ctx.voice_client
+        loop = asyncio.get_event_loop()
+        
+        if self.loop_on:
+            url = self.now_playing_url
+            data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(url, download=False))
+            
+            song = data['url']
+            title = data['title']
+            player = discord.FFmpegOpusAudio(song, **self.FFMPEG_OPTIONS)
+            
+            vc.play(player, after= lambda e: asyncio.run_coroutine_threadsafe(self.do_autoplay(ctx),loop))
+            await ctx.send(f"Now playing: {title} ")
+            
+            self.now_playing_url = url
+            self.now_playing_title = title
+
+        elif(self.music_queue):
             url = self.music_queue[0]['url']
-            loop = asyncio.get_event_loop()
 
             data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(url, download=False))
 
             song = data['url']
             title = data['title']
             player = discord.FFmpegOpusAudio(song, **self.FFMPEG_OPTIONS)
+            
             self.music_queue.pop(0)
+            
             vc.play(player, after= lambda e: asyncio.run_coroutine_threadsafe(self.do_autoplay(ctx),loop))
             await ctx.send(f"Now playing: {title} ")
+            
+            self.now_playing_url = url
+            self.now_playing_title = title
         else:
             return
     
@@ -113,7 +139,8 @@ class music(commands.Cog):
             vc.play(player, after= lambda e: asyncio.run_coroutine_threadsafe(self.do_autoplay(ctx),loop))
 
             await ctx.interaction.followup.send(f"Now playing: {title} ")
-            self.now_playing = url
+            self.now_playing_url = url
+            self.now_playing_title = title
 
         except Exception as e:
             print(e)
@@ -177,7 +204,7 @@ class music(commands.Cog):
         try:
 
             if(voice.is_playing()):
-                await ctx.send(f"Playing now: {self.now_playing}")
+                await ctx.send(f"Playing now: {self.now_playing_title}")
             else:
                 await ctx.send("I'm not playing anything right now")
 
@@ -187,20 +214,24 @@ class music(commands.Cog):
     @commands.hybrid_command(name="play-next",description="I'll play the next song in queue")
     async def play_next(self, ctx: commands.Context):
         try:
-            url = self.music_queue[0]['url']
-            await self.play(ctx,url)
-            self.music_queue.pop(0)
-
+            if self.music_queue:
+                url = self.music_queue[0]['url']
+                await self.play(ctx,url)
+                self.music_queue.pop(0)
+            else:
+                await ctx.send("There's nothing in queue!")
         except Exception as e:
             print(e)
 
     @commands.hybrid_command(name="queue",description="I'll show what's queued up")
     async def show_queue(self, ctx: commands.Context):
         try:
-
-            queue = queueView()
-            queue.data= self.music_queue
-            await queue.send(ctx)
+            if self.music_queue:
+                queue = queueView()
+                queue.data= self.music_queue
+                await queue.send(ctx)
+            else:
+                await ctx.send("There's nothing in queue!")
 
         except Exception as e:
             print(e)
@@ -208,10 +239,25 @@ class music(commands.Cog):
     @commands.hybrid_command(name="remove-from-queue",description="I'll remove this song from queue")
     async def queue_remove(self, ctx: commands.Context,queue_number: int ):
         try:
-            self.music_queue.pop(queue_number - 1)
-            await ctx.send(f"Ok! I removed #{queue_number} from queue.")
+            if self.music_queue:
+                self.music_queue.pop(queue_number - 1)
+                await ctx.send(f"Ok! I removed #{queue_number} from queue.")
+            else:
+                await ctx.send("There's nothing in queue!")
+
         except Exception as e:
             print(e)
+    
+    @commands.hybrid_command(name="repeat",description="I'll enable reapeat mode")
+    async def loop_song(self,ctx):
+        
+        if self.loop_on:
+            self.loop_on = False
+            await ctx.send("Ok! Looping disabled.")
+        else:
+            self.loop_on = True
+            await ctx.send("Ok! Looping enabled.")
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(music(bot))
