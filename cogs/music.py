@@ -1,5 +1,6 @@
 import discord
 import asyncio
+import json
 from discord.ext import commands
 from discord import app_commands
 import yt_dlp
@@ -60,50 +61,12 @@ class music(commands.Cog):
         self.FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5','options': '-vn -attempt_recovery true -recover_any_error true'}
         self.vc = None
     
-    
-    async def do_autoplay(self,ctx):
-        
-        vc = ctx.voice_client
-        loop = asyncio.get_event_loop()
-        
-        if self.loop_on:
-            url = self.now_playing_url
-            data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(url, download=False))
-            
-            song = data['url']
-            title = data['title']
-            player = discord.FFmpegOpusAudio(song, **self.FFMPEG_OPTIONS)
-            
-            vc.play(player, after= lambda e: asyncio.run_coroutine_threadsafe(self.do_autoplay(ctx),loop))
-            await ctx.send(f"Now playing: {title} ")
-            
-            self.now_playing_url = url
-            self.now_playing_title = title
 
-        elif(self.music_queue):
-            url = self.music_queue[0]['url']
+    @commands.hybrid_command(name="play", description="enter a url or search for a song")
+    async def play(self,ctx: commands.Context, query_or_url: str):
 
-            data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(url, download=False))
-
-            song = data['url']
-            title = data['title']
-            player = discord.FFmpegOpusAudio(song, **self.FFMPEG_OPTIONS)
-            
-            self.music_queue.pop(0)
-            
-            vc.play(player, after= lambda e: asyncio.run_coroutine_threadsafe(self.do_autoplay(ctx),loop))
-            await ctx.send(f"Now playing: {title} ")
-            
-            self.now_playing_url = url
-            self.now_playing_title = title
-        else:
-            return
-    
-
-    @commands.hybrid_command(name="play", description="I'll play the video from the url provided")
-    async def play(self,ctx: commands.Context, url: str):
-        
         await ctx.interaction.response.defer(thinking=True)
+
         try:
             voice = ctx.voice_client
 
@@ -121,8 +84,8 @@ class music(commands.Cog):
 
             if(vc.is_playing()):
                 loop = asyncio.get_event_loop()
-                data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(url, download=False))
-                qitem = {"title": data['title'], "url": url}
+                data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(query_or_url, download=False))
+                qitem = {"title": data['title'], "url": query_or_url}
                 self.music_queue.append(qitem)
                 await ctx.interaction.followup.send(f"Ok! I added \"{data['title']}\" to the queue!")
                 return
@@ -130,7 +93,7 @@ class music(commands.Cog):
 
             loop = asyncio.get_event_loop()
 
-            data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(url, download=False))
+            data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(query_or_url, download=False))
 
             song = data['url']
             title = data['title']
@@ -139,8 +102,7 @@ class music(commands.Cog):
             vc.play(player, after= lambda e: asyncio.run_coroutine_threadsafe(self.do_autoplay(ctx),loop))
 
             await ctx.interaction.followup.send(f"Now playing: {title} ")
-            self.now_playing_url = url
-            self.now_playing_title = title
+            self.now_playing = query_or_url
 
         except Exception as e:
             print(e)
