@@ -1,12 +1,50 @@
 import discord
 import asyncio
+import json
+import validators
+import requests
 from discord.ext import commands
 from discord import app_commands
 import yt_dlp
 from yt_dlp import YoutubeDL
+from dotenv import load_dotenv
+import os
 
 #TODO: make commands execute per server instead of globally
 #TODO: add folder for ffmpeg and path variable
+
+load_dotenv()
+
+class SongSelect(discord.ui.Select):
+    def __init__(self, songMap):
+        #options can be an array that we can hardcode, but we pass in the map
+        #placeholder is just what shows up before selecting an option
+        super().__init__(placeholder="Select a result", max_values=1, min_values=1, options = songMap)
+
+    async def callback(self, interaction: discord.Interaction):
+        #get key
+        title = self.values[0]
+
+        #build url
+        urlBase = "https://www.youtube.com/watch?v="
+        songId = self.view.songMap[title]
+        fullUrl = urlBase + songId
+
+        self.view.value = fullUrl
+        self.view.stop()
+        await interaction.response.defer()
+
+class SongSelectView(discord.ui.View):
+    def __init__(self, songMap):
+        #respond within 60 seconds
+        super().__init__(timeout=60)
+        self.songMap = songMap 
+        self.value = None
+        options = [
+            #add option per result
+            discord.SelectOption(label=title) for title, url in songMap.items()
+        ]
+        self.add_item(SongSelect(options))
 
 class queueView(discord.ui.View):
     current_page: int = 1
@@ -60,7 +98,6 @@ class music(commands.Cog):
         self.FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5','options': '-vn -attempt_recovery true -recover_any_error true'}
         self.vc = None
     
-    
     async def do_autoplay(self,ctx):
         
         vc = ctx.voice_client
@@ -98,12 +135,53 @@ class music(commands.Cog):
             self.now_playing_title = title
         else:
             return
-    
 
-    @commands.hybrid_command(name="play", description="I'll play the video from the url provided")
-    async def play(self,ctx: commands.Context, url: str):
-        
+    @commands.hybrid_command(name="play", description="enter a url or search for a song")
+    async def play(self,ctx: commands.Context, query_or_url: str):
+
         await ctx.interaction.response.defer(thinking=True)
+
+        if not validators.url(query_or_url):
+            #get api key fron env
+            youtube_URL = 'https://www.googleapis.com/youtube/v3/search'
+
+            #build params dict
+            paramMap = {
+                'key': os.getenv('YOUTUBE_API_KEY'),
+                'part' : 'snippet',
+                'type': 'video',
+                'maxResults': '10',
+                'q' : query_or_url
+            }
+
+            #send api request for query
+            apiResponse = requests.get(youtube_URL, paramMap)
+
+            responseJSONObject = apiResponse.json()
+
+            #place 
+            resultMap = {}
+            for apiresult in responseJSONObject['items']:
+                if apiresult['id']['kind'] != "youtube#channel":
+                    url = apiresult['id']['videoId']
+                    title = apiresult['snippet']['title']
+                    resultMap[title] = url
+
+                
+
+            for key, value in resultMap.items():
+                print(key, value)
+
+            view = SongSelectView(resultMap)
+            await ctx.interaction.followup.send("Search results:", view=view)
+            #start waiting for user to select something
+            await view.wait()
+
+            if view.value:
+                query_or_url = view.value #should be the url of the selected title
+            else:
+                await ctx.interaction.followup.send("Selection timed out :(")
+
         try:
             voice = ctx.voice_client
 
@@ -121,8 +199,8 @@ class music(commands.Cog):
 
             if(vc.is_playing()):
                 loop = asyncio.get_event_loop()
-                data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(url, download=False))
-                qitem = {"title": data['title'], "url": url}
+                data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(query_or_url, download=False))
+                qitem = {"title": data['title'], "url": query_or_url}
                 self.music_queue.append(qitem)
                 await ctx.interaction.followup.send(f"Ok! I added \"{data['title']}\" to the queue!")
                 return
@@ -130,7 +208,7 @@ class music(commands.Cog):
 
             loop = asyncio.get_event_loop()
 
-            data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(url, download=False))
+            data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(query_or_url, download=False))
 
             song = data['url']
             title = data['title']
@@ -139,7 +217,7 @@ class music(commands.Cog):
             vc.play(player, after= lambda e: asyncio.run_coroutine_threadsafe(self.do_autoplay(ctx),loop))
 
             await ctx.interaction.followup.send(f"Now playing: {title} ")
-            self.now_playing_url = url
+            self.now_playing_url = query_or_url
             self.now_playing_title = title
 
         except Exception as e:
