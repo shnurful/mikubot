@@ -1,5 +1,6 @@
 import discord
-from discord.ext import commands
+import asyncio
+from discord.ext import commands, tasks
 from discord import app_commands
 
 class main_commands(commands.Cog):
