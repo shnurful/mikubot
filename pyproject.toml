@@ -1,0 +1,17 @@
+[project]
+name = "mikubot"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "dave>=0.9.0",
+    "davey>=0.1.4",
+    "discord>=2.3.2",
+    "pynacl>=1.6.0",
+    "python-dotenv>=1.1.1",
+    "requests>=2.32.5",
+    "validators>=0.35.0",
+    "youtube-dl>=2021.12.17",
+    "yt-dlp>=2025.9.26",
+]
