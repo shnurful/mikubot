@@ -9,7 +9,7 @@ from discord.ext import commands
 class ReactionTracker(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.db = sqlite3.connect("messages.db")
+        self.db = sqlite3.connect("./db/bot.db")
         self.db.row_factory = sqlite3.Row
         self._startup_sync_lock = asyncio.Lock()
         self._startup_sync_done = False
@@ -54,6 +54,7 @@ class ReactionTracker(commands.Cog):
         except sqlite3.OperationalError:
             # Column already exists, ignore
             pass
+        self.db.commit()
 
     async def _fetch_message(self, channel_id: int, message_id: int) -> Optional[discord.Message]:
         channel = self.bot.get_channel(channel_id)
@@ -177,6 +178,16 @@ class ReactionTracker(commands.Cog):
         async with self._startup_sync_lock:
             if self._startup_sync_done:
                 return
+
+            # If no tracked rows exist, clear checkpoints so we backfill full history.
+            row = self.db.execute(
+                "SELECT COUNT(*) FROM reaction_messages"
+            ).fetchone()
+            tracked_count = int(row[0]) if row else 0
+            if tracked_count == 0:
+                self.db.execute("DELETE FROM reaction_tracker_state")
+                self.db.commit()
+                print("[ReactionTracker] No tracked rows found; forcing full history backfill.")
 
             for guild in self.bot.guilds:
                 for channel in guild.text_channels:

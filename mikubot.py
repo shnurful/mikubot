@@ -27,6 +27,16 @@ intents.messages = True
 bot = commands.Bot(command_prefix="&", intents=intents)
 
 
+@bot.event
+async def setup_hook():
+    # Load cogs before the ready event so cog listeners can catch startup events.
+    await bot.load_extension("cogs.maincommands")
+    await bot.load_extension("cogs.music")
+    await bot.load_extension("cogs.misccommands")
+    await bot.load_extension("cogs.reactiontracker")
+    await bot.tree.sync()
+
+
 @bot.hybrid_command(name="reload-cog", description="reload specified cog")
 async def reload(ctx: commands.Context, arg: str):
     await bot.reload_extension(f"cogs.{arg}")
@@ -39,14 +49,6 @@ async def on_ready():
     #startup message
     print(f"Logged on as {bot.user}!")
 
-    #load cogs
-    await bot.load_extension("cogs.maincommands")
-    await bot.load_extension("cogs.music")
-    await bot.load_extension("cogs.misccommands")
-    await bot.load_extension("cogs.reactiontracker")
-
-    await bot.tree.sync()
-
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
@@ -57,6 +59,8 @@ async def on_message(message):
             await message.channel.send("\\*censored\\* (ーー;) ")
         else:
             await message.channel.send(response)
+
+    await bot.process_commands(message)
  
 
 bot.run(os.getenv("DISCORD_TOKEN"), log_handler=handler, log_level=logging.DEBUG)
