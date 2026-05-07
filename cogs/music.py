@@ -100,10 +100,10 @@ class music(commands.Cog):
 
         self.disconnect_timer = None
 
-        self.YDL_OPTIONS = {"format": "bestaudio/best", "noplaylist": "True"}
+        self.YDL_OPTIONS = {"format": "bestaudio/best", "noplaylist": "True", "youtube" : "player_client=ios,web"}
         self.ytdl = yt_dlp.YoutubeDL(self.YDL_OPTIONS)
         self.FFMPEG_OPTIONS = {
-            "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
+            "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 ",
             "options": "-vn -af loudnorm=I=-16:TP=-1.5:LRA=11 -attempt_recovery true -recover_any_error true",
         }
         self.vc = None
@@ -265,6 +265,7 @@ class music(commands.Cog):
             
             self.stop_dc_timer()
 
+            await asyncio.sleep(.5)
             vc.play(
                 player,
                 after=lambda e: asyncio.run_coroutine_threadsafe(

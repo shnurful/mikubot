@@ -1,4 +1,5 @@
 import discord
+import re
 from discord.ext import commands
 from discord import app_commands
 import logging
@@ -41,7 +42,11 @@ async def on_message(message):
     if message.author == bot.user:
         return
     if bot.user in message.mentions:
-        await message.channel.send(markov.generate_markov_text())
+        response = markov.generate_markov_text()
+        if re.search(r"<@!?(\d+)>", response):
+            await message.channel.send("\\*censored\\* (ーー;) ")
+        else:
+            await message.channel.send(response)
  
 
 bot.run(os.getenv("DISCORD_TOKEN"), log_handler=handler, log_level=logging.DEBUG)
