@@ -4,8 +4,11 @@ from discord import app_commands
 import logging
 from dotenv import load_dotenv
 import os
-import markov
+# import markov
+
 load_dotenv()
+
+#discord setup
 DISCORD_TOKEN = os.environ["DISCORD_TOKEN"]
 
 handler = logging.FileHandler(filename="discord.log", encoding="utf-8", mode="w")
@@ -17,6 +20,8 @@ discord.utils.oauth_url(1367576586324414554)
 intents = discord.Intents.default()
 intents.message_content = True
 intents.voice_states = True
+intents.reactions = True
+intents.messages = True
 
 bot = commands.Bot(command_prefix="&", intents=intents)
 
@@ -30,18 +35,30 @@ async def reload(ctx: commands.Context, arg: str):
 
 @bot.event
 async def on_ready():
+    #startup message
     print(f"Logged on as {bot.user}!")
+
+    #load cogs
     await bot.load_extension("cogs.maincommands")
     await bot.load_extension("cogs.music")
     await bot.load_extension("cogs.misccommands")
+    await bot.load_extension("cogs.reactiontracker")
+
     await bot.tree.sync()
 
-@bot.event
-async def on_message(message):
-    if message.author == bot.user:
-        return
-    if bot.user in message.mentions:
-        await message.channel.send(markov.generate_markov_text())
+    #db catchup
+    
+
+
+
+# @bot.event
+# async def on_message(message):
+#     if message.author == bot.user:
+#         return
+#     if bot.user in message.mentions:
+#         await message.channel.send(markov.generate_markov_text())
+
+#     await bot.process_commands(message)
  
 
 bot.run(os.getenv("DISCORD_TOKEN"), log_handler=handler, log_level=logging.DEBUG)

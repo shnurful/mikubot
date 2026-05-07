@@ -31,6 +31,8 @@ repeat - enables looping for the current song
 
 avatar - displays the selected user's avatar
 
+top-reacted - shows the top 10 most reacted messages for a selected user
+
 Dev Commands:
 
 reload-cog - reloads the specified command cog for testing
